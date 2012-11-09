@@ -23,6 +23,7 @@ import org.w3c.dom.NodeList;
 import com.google.ads.*;
 
 import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -52,6 +53,7 @@ public class MainActivity extends Activity {
 
 	private AdView adView;
 	public static final int DIALOG_DOWNLOAD_PROGRESS = 0;
+	public static int DOWNLOAD_COMPLETE = 0;	
 	private ProgressDialog mProgressDialog;
 	String feedurl = "http://query.yahooapis.com/v1/public/yql?q=select%20title%2Clink%20from%20feed%20where%20url%3D%22https%3A%2F%2Fgdata.youtube.com%2Ffeeds%2Fapi%2Fplaylists%2F253BF6217CD324EF%3Fv%3D2%22%20%20and%20link.rel%3D%22alternate%22";
 
@@ -97,6 +99,9 @@ public class MainActivity extends Activity {
 					Log.d("DB", "update episode data from internet");
 					// load episode data and items form internet
 					startDownload();
+					while(DOWNLOAD_COMPLETE!=1){
+						Log.d("DOWNLOAD", "Waiting download file");
+					} 		
 					parseContent();
 					loadContent();
 				}
@@ -167,9 +172,8 @@ public class MainActivity extends Activity {
 				// String fileName = URLDownload.substring(
 				// URLDownload.lastIndexOf('/')+1, URLDownload.length() );
 
-				OutputStream output = new FileOutputStream(Environment
-						.getExternalStorageDirectory().getPath()
-						+ "/playlist.xml");
+				//OutputStream output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath()+ "/playlist.xml");
+				OutputStream output = new FileOutputStream(getExternalFilesDir(null).getAbsolutePath().toString() + "/" + "playlist.xml");
 
 				Log.d("FILE", Environment.getExternalStorageDirectory()
 						.getPath() + "/playlist.xml");
@@ -177,6 +181,8 @@ public class MainActivity extends Activity {
 				byte data[] = new byte[1024];
 
 				long total = 0;
+				
+				MainActivity.DOWNLOAD_COMPLETE=0;
 
 				while ((count = input.read(data)) != -1) {
 					total += count;
@@ -187,6 +193,8 @@ public class MainActivity extends Activity {
 				output.flush();
 				output.close();
 				input.close();
+				
+				MainActivity.DOWNLOAD_COMPLETE=1;
 
 			} catch (Exception e) {
 				Log.d("DOWNLOAD", "Error download file");
@@ -235,8 +243,8 @@ public class MainActivity extends Activity {
 		final DatabaseHandler myDb = new DatabaseHandler(this);
 		try {
 
-			File fXmlFile = new File(Environment.getExternalStorageDirectory()
-					.getPath() + "/playlist.xml");
+			//File fXmlFile = new File(Environment.getExternalStorageDirectory().getPath() + "/playlist.xml");
+			File fXmlFile = new File(getExternalFilesDir(null).getAbsolutePath().toString() + "/" + "playlist.xml");			
 			DocumentBuilderFactory dbFactory = DocumentBuilderFactory
 					.newInstance();
 			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
@@ -280,22 +288,10 @@ public class MainActivity extends Activity {
 	}
 
 	public boolean checkNetworkStatus() {
-		final ConnectivityManager connMgr = (ConnectivityManager) this
-				.getSystemService(Context.CONNECTIVITY_SERVICE);
-		final android.net.NetworkInfo wifi = connMgr
-				.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-		final android.net.NetworkInfo mobile = connMgr
-				.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
-		if (wifi.isAvailable()) {
-			Log.d("Network", "Connect via Wifi");
-			return true;
-		} else if (mobile.isAvailable()) {
-			Log.d("Network", "Connect via Mobile network");
-			return true;
-		} else {
-			Log.d("Network", "No network connection");
-			return false;
-		}
+		ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+		NetworkInfo activeNetworkInfo = connectivityManager
+				.getActiveNetworkInfo();
+		return activeNetworkInfo != null;
 	}
 	
 	@Override
